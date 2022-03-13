@@ -21,7 +21,8 @@ def scrape_all():
            "news_paragraph":news_paragraph,
            "featured_image":featured_image(browser),
            "facts":mars_facts(),
-           "last_modified":dt.datetime.now()}
+           "last_modified":dt.datetime.now(),
+           "hemispheres":mars_hemispheres(browser)}
     
     #quit the browser
     browser.quit()
@@ -66,7 +67,7 @@ def featured_image(browser):
     #add try/except for errors
     try:
         #gind the relative image url
-        img_url_rel = img_soup.find('img', class_='fancybox-image').get('src')
+        img_url_rel = img_soup.find('img', class_='fancybox-image', text='alt').get('src')
     except AttributeError:
         return None
     #use the base url to create absolute url
@@ -90,6 +91,41 @@ def mars_facts():
     
     #convert df into HTML format, add bootstrap
     return df.to_html()
+
+#refactor hemisphere data into a function
+def mars_hemispheres(browser):
+    #vist the URL
+    url = 'https://marshemispheres.com/'
+    browser.visit(url)
+
+    #create a list to hold the dictionaries of images and titles
+    hemisphere_image_urls = []
+
+    #use a for loop to loop through the four hemispheres and retrieve the images and titles
+    #use the range function to only collect the first four h3 tags
+    # the last h3 is not related to the hemisphere data
+    for i in range(0,4):
+    # create an empty dictionary 
+        hemispheres = {}
+        #find using the h3 tag
+        hemisphere = browser.find_by_tag('h3')[i]
+        #click on the header to take you to the full scale image page
+        hemisphere.click()
+        html = browser.html
+        mars_soup = soup(html, 'html.parser')
+        #find the full res image by class a
+        img_url_rel = mars_soup.find('a', target='_blank', text='Sample').get('href')
+        img_url = f"https://marshemispheres.com/{img_url_rel}"
+        #append to dictionary
+        hemispheres.update({'img_url':img_url})
+        #find the heading
+        mars_title = mars_soup.find('h2', class_='title').get_text()
+        #add the heading to the dictionary
+        hemispheres.update({'title':mars_title})
+        hemisphere_image_urls.append(hemispheres)
+        browser.back()
+    #return list of dictionaries of hemisphere urls and titles
+    return hemisphere_image_urls
 
 if __name__ == "__main__":
     #if running script, print scraped data
